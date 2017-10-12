@@ -25,7 +25,7 @@ public class ServerThread implements Runnable {//needed for the treads to work
 
     @Override
     public void run(){
-        System.out.println("Welcome :" + userName);
+        System.out.println("J_OK Protocol Welcome :" + userName);
 
         //System.out.println("Local Port :" + socket.getLocalPort());
         System.out.println("Server IP= " + socket.getInetAddress() + " PORT:" + socket.getPort());
@@ -44,12 +44,37 @@ public class ServerThread implements Runnable {//needed for the treads to work
                 }
                 if(hasMessages){
                     String nextSend = "";
+
+
                     synchronized(messagesToSend){
                         nextSend = messagesToSend.pop();//get the messages from the list to display and remove it
                         hasMessages = !messagesToSend.isEmpty();//return not true when isEmpty
+
                     }
-                    serverOut.println(userName + " >>> " + nextSend);
+
+                    if(nextSend.equals("QUITE")){//My quite protocol
+                        System.out.println("QUITE Protocol. Sad to see you go!");
+                        socket.close();
+                    }
+
+                    if(nextSend.equals("LIST")){//My list protocol
+                        System.out.println("List Protocol. See all the users!");
+                        //code to display here
+
+
+                         System.out.println(ChatServer.getNames());
+
+
+
+                       // System.out.println(serverClients.getClients());
+
+
+                    }
+
+                    serverOut.println(userName + " ----> " + nextSend);
                     serverOut.flush();//poop
+
+
                 }
             }
         }
