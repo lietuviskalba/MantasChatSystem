@@ -1,64 +1,108 @@
+
+import java.io.DataInputStream;
+import java.io.PrintStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
+import java.net.UnknownHostException;
 
-public class Client {
+public class Client implements Runnable {
 
-    private static final String myIP = "192.168.0.102";
-    private static final int portNumber = 4444;
+    // The client socket
+    private static Socket clientSocket = null;
+    // The output stream
+    private static PrintStream os = null;
+    // The input stream
+    private static BufferedReader is = null;
 
-    private String userName;
-    private String clientIP;
-    private int serverPort;
+    private static BufferedReader inputLine = null;
+    private static boolean closed = false;
 
-    private Scanner userInputScanner;
+    public static void main(String[] args) {
 
-    public static void main(String[] args){
+        // The  port.
+        int portNumber = 2222;
+        // The default host.
+        String ip = "localhost";
 
-        //check to enter the corret name
-        String readName = null;
-        Scanner scan = new Scanner(System.in);
-        System.out.println("Please input username:");
-        while(readName == null || readName.trim().equals("")){
-            // null, empty, whitespace(s) not allowed.
-            readName = scan.nextLine();
-            if(readName.trim().equals("")){
-                System.out.println("Invalid. Please enter again:");
-            }
-
-            ///Code for duplicate name here
+        if (args.length < 2) {
+            System.out.println("Usage: java MultiThreadChatClient <host> <portNumber>\n" + "Now using host=" + ip + ", portNumber=" + portNumber);
+        } else {
+            ip = args[0];
+            portNumber = Integer.valueOf(args[1]).intValue();
         }
 
-        Client client = new Client(readName, myIP, portNumber);
+    // connect to serverrr and inizialize stuff
+        try {
+            clientSocket = new Socket(ip, portNumber);
+            inputLine = new BufferedReader(new InputStreamReader(System.in));
+            os = new PrintStream(clientSocket.getOutputStream());
+            is = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()));
+        } catch (UnknownHostException e) {
+            System.err.println("<<< SHIT SHIT SHIT whos the ip " + ip);
+        } catch (IOException e) {
+            System.err.println("<<< SHIT SHIT SHIT IO " + ip);
+        }
 
-        client.startClient(scan);
-    }
+        if (clientSocket != null && os != null && is != null) {
+            try {
 
-    private Client(String userName, String ip, int portNumber){//structure to have a name, ip, port
-        this.userName = userName;
-        this.clientIP = ip;
-        this.serverPort = portNumber;
-    }
-
-    private void startClient(Scanner scan){
-        try{
-            Socket socket = new Socket(clientIP, serverPort);
-            Thread.sleep(1000); // waiting for network communicating.
-
-            ServerThread serverThread = new ServerThread(socket, userName);//initiali ST
-            Thread serverAccessThread = new Thread(serverThread);
-            serverAccessThread.start();
-
-            while(serverAccessThread.isAlive()){//check if thread is alive
-                if(scan.hasNextLine()){//if scan has something to say WAIT for itzzz input
-                    serverThread.addNextMessage(scan.nextLine());
+        //  a thread to read from  serve
+                new Thread(new Client()).start();
+                while (!closed) {
+                    os.println(inputLine.readLine().trim());
                 }
+       //close  stuff
+                os.close();
+                is.close();
+                clientSocket.close();
+            } catch (IOException e) {
+                System.err.println(" <<< SHIT SHIT SHIT :  " + e);
             }
-        }catch(IOException ex){
-            System.err.println("Fatal Connection error!");
-            ex.printStackTrace();
-        }catch(InterruptedException ex){
-            System.out.println("Interrupted");
+        }
+
+//        Thread thread1 = new Thread() {
+//            public void run() {
+//                //   System.out.println("Thread is running");
+//                int a = 0;
+//                while (true) {
+//                    PrintStream p = null;
+//                    try {
+//                        p = new PrintStream(clientSocket.getOutputStream());
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    p.println("IMAV");
+//                    try {
+//                        Thread.sleep(60000); //
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                        System.out.println("Please restart app");
+//                    }
+//                }
+//            }
+//        };
+//
+//        thread1.start();
+    }
+
+
+
+
+
+    public void run() {
+    //read until we receive the word "bye"
+        String responseLine;
+        try {
+            while ((responseLine = is.readLine()) != null) {
+                System.out.println(responseLine);
+                if (responseLine.indexOf("*** Bye") != -1)
+                    break;
+            }
+            closed = true;
+        } catch (IOException e) {
+            System.err.println("<<< SHIT SHIT SHIT:  " + e);
         }
     }
 }
